@@ -6,6 +6,31 @@
     <title>CPU Scheduling Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+      .timeline-line {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #6b7280; /* gray-500 */
+        transform: translateY(-50%);
+      }
+
+      .timeline-tick {
+        position: absolute;
+        top: 50%;
+        width: 2px;
+        height: 10px;
+        background-color: #6b7280;
+        transform: translateY(-50%);
+      }
+
+      .timeline-label {
+        position: absolute;
+        top: 0;
+        transform: translateX(-50%);
+        font-size: 0.875rem;
+      }
       /* Dots background pattern */
       .dots-bg-light {
         background-image: radial-gradient(
@@ -79,13 +104,17 @@
 
     <div class="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
       <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <h1 class="text-4xl font-bold text-gray-800" id="mainTitle">
+      <div class="flex items-center justify-between mb-8">
+        <h1
+          class="p-1 text-4xl font-bold text-center bg-gradient-to-r from-blue-900 via-teal-400 to-green-500 bg-clip-text text-transparent flex-1"
+          id="mainTitle"
+        >
           CPU Scheduling Simulator
         </h1>
+
         <button
           id="darkModeToggle"
-          class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 dark:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-600"
+          class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 dark:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-600 ml-4"
         >
           <svg
             id="sunIcon"
@@ -127,7 +156,7 @@
           Configuration
         </h2>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
             <label
               class="block text-sm font-medium mb-2 text-gray-700"
@@ -141,8 +170,8 @@
             >
               <option value="fcfs">First Come First Serve (FCFS)</option>
               <option value="sjf">Shortest Job First (SJF)</option>
-              <option value="priority">Priority Scheduling</option>
-              <option value="rr">Round Robin (RR)</option>
+              <option value="npp">Non-Preemptive Priority (NPP)</option>
+              <option value="srtf">Shortest Remaining Time First (SRTF)</option>
             </select>
           </div>
 
@@ -159,22 +188,6 @@
               min="1"
               max="10"
               value="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
-
-          <div id="timeQuantumContainer" class="hidden">
-            <label
-              class="block text-sm font-medium mb-2 text-gray-700"
-              id="timeQuantumLabel"
-            >
-              Time Quantum
-            </label>
-            <input
-              type="number"
-              id="timeQuantum"
-              min="1"
-              value="2"
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
@@ -200,7 +213,7 @@
         <div class="flex gap-4">
           <button
             id="runBtn"
-            class="px-6 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md font-medium flex items-center gap-2"
+            class="px-6 py-2 bg-green-500 hover:bg-purple-600 text-white rounded-md font-medium flex items-center gap-2"
           >
             <svg
               class="h-4 w-4"
@@ -250,6 +263,14 @@
         <!-- Gantt Chart -->
         <div
           class="p-6 rounded-lg shadow-lg bg-white/80 backdrop-blur border border-gray-200"
+          id="timelineCard"
+        >
+          <h2 class="text-2xl font-semibold mb-4 text-gray-800">Timeline</h2>
+          <div id="timelineContainer" class="w-full"></div>
+        </div>
+        <!-- Gantt Chart -->
+        <div
+          class="p-6 rounded-lg shadow-lg bg-white/80 backdrop-blur border border-gray-200"
           id="ganttCard"
         >
           <h2 class="text-2xl font-semibold mb-4 text-gray-800">Gantt Chart</h2>
@@ -261,13 +282,10 @@
               </div>
 
               <!-- Timeline -->
-              <div id="ganttTimeline" class="flex gap-0 relative">
-                <!-- Timeline markers will be inserted here -->
-              </div>
+              <div id="ganttTimeline" class="flex w-full"></div>
             </div>
           </div>
         </div>
-
         <!-- Statistics -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <!-- Turnaround & Waiting Time -->
@@ -275,15 +293,13 @@
             class="p-6 md:col-span-2 rounded-lg shadow-lg bg-white/80 backdrop-blur border border-gray-200"
             id="statsCard"
           >
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800">
-              Job Statistics
-            </h2>
+            <h2 class="text-2xl font-semibold mb-4 text-gray-800">Output</h2>
             <table class="w-full">
               <thead>
                 <tr class="border-b border-gray-200">
                   <th class="py-2 px-4 text-left text-gray-700">Job ID</th>
                   <th class="py-2 px-4 text-left text-gray-700">
-                    Turnaround Time
+                    Turn Around Time
                   </th>
                   <th class="py-2 px-4 text-left text-gray-700">
                     Waiting Time
@@ -336,8 +352,10 @@
                       x2="100%"
                       y2="100%"
                     >
-                      <stop offset="0%" stop-color="#a78bfa" />
-                      <stop offset="100%" stop-color="#ec4899" />
+                      <stop offset="0%" stop-color="#4ade80" />
+                      <!-- green -->
+                      <stop offset="100%" stop-color="#3b82f6" />
+                      <!-- blue -->
                     </linearGradient>
                   </defs>
                 </svg>
