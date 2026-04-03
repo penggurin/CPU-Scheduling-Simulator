@@ -1,378 +1,710 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CPU Scheduling Simulator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      .timeline-line {
-        position: absolute;
-        top: 50%;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background-color: #6b7280; /* gray-500 */
-        transform: translateY(-50%);
-      }
+<style>
+  @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap");
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    font-family: "IBM Plex Sans", sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: #fff;
+    padding: 24px;
+  }
+  .glass {
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 16px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2.6rem;
+    font-weight: 800;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    color: #fff;
+    text-shadow:
+      0 0 30px rgba(167, 139, 250, 0.5),
+      0 0 60px rgba(96, 165, 250, 0.25);
+  }
+  .top-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  #ganttContainer {
+    width: 100%;
+    overflow: hidden;
+  }
 
-      .timeline-tick {
-        position: absolute;
-        top: 50%;
-        width: 2px;
-        height: 10px;
-        background-color: #6b7280;
-        transform: translateY(-50%);
-      }
+  #ganttWrap {
+    transform-origin: top left;
+  }
+  label.lbl {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgb(255, 255, 255);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+  select,
+  input[type="number"] {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+    color: #fff;
+    padding: 9px 12px;
+    font-family: "Oxanium", sans-serif;
+    font-size: 14px;
+    outline: none;
+    appearance: none;
+  }
+  select:focus,
+  input:focus {
+    border-color: rgba(167, 139, 250, 0.55);
+  }
+  select option {
+    background: #302b63;
+    color: #fff;
+  }
+  .job-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .job-table th {
+    padding: 8px 12px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.35);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .job-table td {
+    padding: 6px 8px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .job-table td:first-child {
+    font-weight: 700;
+    color: #a78bfa;
+  }
+  .job-table input {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: #fff;
+    padding: 5px 8px;
+    font-family: "Oxanium", sans-serif;
+    font-size: 13px;
+    width: 70px;
+    text-align: center;
+    outline: none;
+  }
+  .job-table input:focus {
+    border-color: rgba(167, 139, 250, 0.5);
+    background: rgba(167, 139, 250, 0.08);
+  }
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .btn {
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-family: "Oxanium", sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s;
+    border: none;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .btn-run {
+    background: linear-gradient(135deg, #7c3aed, #4d26da);
+    color: #fff;
+    flex: 1;
+  }
+  .btn-run:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+  }
+  .btn-reset {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.13);
+  }
+  .btn-reset:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+  #results {
+    margin-top: 20px;
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .sec-title {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgb(255, 255, 255);
+    margin-bottom: 12px;
+  }
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+  }
+  .calc-box {
+    padding: 16px;
+  }
+  .calc-row {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12.5px;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .calc-eq {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 11.5px;
+    flex: 1;
+  }
+  .calc-val {
+    font-weight: 700;
+    color: #4ade80;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .calc-avg {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .avg-f {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.35);
+    margin-bottom: 2px;
+    word-break: break-all;
+  }
+  .avg-v {
+    font-size: 19px;
+    font-weight: 700;
+    color: #f9a8d4;
+    margin-top: 4px;
+  }
+  /* CPU box — match other cards exactly */
+  .cpu-box {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .cpu-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .donut-wrap {
+    position: relative;
+    width: 110px;
+    height: 110px;
+  }
+  .donut-wrap svg {
+    display: block;
+  }
+  .donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+  }
+  .donut-pct {
+    font-size: 20px;
+    font-weight: 800;
+    color: #4ade80;
+    line-height: 1;
+    font-family: "Oxanium", sans-serif;
+  }
+  .donut-sub {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+  .cpu-frac {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.4);
+    line-height: 1.8;
+  }
+  .frac-line {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    vertical-align: middle;
+    margin-right: 4px;
+  }
+  .frac-n {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+    padding-bottom: 2px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .frac-d {
+    padding-top: 2px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+</style>
 
-      .timeline-label {
-        position: absolute;
-        top: 0;
-        transform: translateX(-50%);
-        font-size: 0.875rem;
-      }
-      /* Dots background pattern */
-      .dots-bg-light {
-        background-image: radial-gradient(
-          circle,
-          rgba(0, 0, 0, 0.1) 1px,
-          transparent 1px
-        );
-        background-size: 20px 20px;
-      }
+<h1>CPU Scheduling Simulator</h1>
 
-      .dots-bg-dark {
-        background-image: radial-gradient(
-          circle,
-          rgba(255, 255, 255, 0.1) 1px,
-          transparent 1px
-        );
-        background-size: 20px 20px;
-      }
+<div class="glass" style="padding: 20px">
+  <div class="top-row">
+    <div>
+      <label class="lbl">Algorithm</label>
+      <select id="algo">
+        <option value="fcfs">First Come First Serve (FCFS)</option>
+        <option value="sjf">Shortest Job First (SJF)</option>
+        <option value="npp">Non-Preemptive Priority (NPP)</option>
+        <option value="srtf">Shortest Remaining Time First (SRTF)</option>
+      </select>
+    </div>
+    <div>
+      <label class="lbl">Number of Jobs</label>
+      <input
+        type="number"
+        id="numJobs"
+        min="1"
+        max="10"
+        value="5"
+        style="width: 100%"
+      />
+    </div>
+  </div>
+  <div style="overflow-x: auto">
+    <table class="job-table">
+      <thead>
+        <tr>
+          <th>Job</th>
+          <th>Arrival Time</th>
+          <th>Burst Time</th>
+          <th>Priority</th>
+        </tr>
+      </thead>
+      <tbody id="tBody"></tbody>
+    </table>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-run" onclick="runScheduler()">
+      &#9654; Calculate
+    </button>
+    <button class="btn btn-reset" onclick="resetAll()">&#8635; Reset</button>
+  </div>
+</div>
 
-      /* Smooth transitions */
-      * {
-        transition:
-          background-color 0.3s,
-          color 0.3s,
-          border-color 0.3s;
-      }
+<div id="results">
+  <!-- Timeline -->
+  <div class="glass" style="padding: 16px 20px">
+    <div class="sec-title">Timeline</div>
+    <div style="overflow-x: auto; padding: 0 8px" id="tlContainer"></div>
+  </div>
 
-      /* Custom scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 4px;
-      }
-
-      .dark ::-webkit-scrollbar-thumb {
-        background: #4b5563;
-      }
-
-      /* Hover effects */
-      .gantt-bar {
-        transition: transform 0.2s;
-      }
-
-      .gantt-bar:hover {
-        transform: scale(1.05);
-      }
-
-      /* Input styling */
-      input[type="number"]::-webkit-inner-spin-button,
-      input[type="number"]::-webkit-outer-spin-button {
-        opacity: 1;
-      }
-    </style>
-  </head>
-  <body
-    class="min-h-screen transition-colors duration-300 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50"
-  >
-    <!-- Dots background -->
+  <!-- Gantt -->
+  <div class="glass" style="padding: 16px 20px">
+    <div class="sec-title">Gantt Chart</div>
     <div
-      id="dotsBackground"
-      class="fixed inset-0 pointer-events-none opacity-30 dots-bg-light"
-    ></div>
-
-    <div class="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-8">
-        <h1
-          class="p-1 text-4xl font-bold text-center bg-gradient-to-r from-blue-900 via-teal-400 to-green-500 bg-clip-text text-transparent flex-1"
-          id="mainTitle"
-        >
-          CPU Scheduling Simulator
-        </h1>
-
-        <button
-          id="darkModeToggle"
-          class="p-2 rounded-full border border-gray-300 bg-white hover:bg-gray-100 dark:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-600 ml-4"
-        >
-          <svg
-            id="sunIcon"
-            class="h-5 w-5 text-gray-800"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-            />
-          </svg>
-          <svg
-            id="moonIcon"
-            class="h-5 w-5 text-white hidden"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-            />
-          </svg>
-        </button>
-      </div>
-
-      <!-- Input Section -->
-      <div
-        class="p-6 mb-6 rounded-lg shadow-lg bg-white/80 backdrop-blur border border-gray-200"
-        id="configCard"
-      >
-        <h2 class="text-2xl font-semibold mb-4 text-gray-800" id="configTitle">
-          Configuration
-        </h2>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div>
-            <label
-              class="block text-sm font-medium mb-2 text-gray-700"
-              id="algoLabel"
-            >
-              Scheduling Algorithm
-            </label>
-            <select
-              id="algorithm"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            >
-              <option value="fcfs">First Come First Serve (FCFS)</option>
-              <option value="sjf">Shortest Job First (SJF)</option>
-              <option value="npp">Non-Preemptive Priority (NPP)</option>
-              <option value="srtf">Shortest Remaining Time First (SRTF)</option>
-            </select>
-          </div>
-
-          <div>
-            <label
-              class="block text-sm font-medium mb-2 text-gray-700"
-              id="numJobsLabel"
-            >
-              Number of Jobs
-            </label>
-            <input
-              type="number"
-              id="numJobs"
-              min="1"
-              max="10"
-              value="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          </div>
-        </div>
-
-        <!-- Jobs Table -->
-        <div class="overflow-x-auto mb-6">
-          <table class="w-full">
-            <thead>
-              <tr class="border-b border-gray-200">
-                <th class="py-2 px-4 text-left text-gray-700">Job ID</th>
-                <th class="py-2 px-4 text-left text-gray-700">Arrival Time</th>
-                <th class="py-2 px-4 text-left text-gray-700">Burst Time</th>
-                <th class="py-2 px-4 text-left text-gray-700">Priority</th>
-              </tr>
-            </thead>
-            <tbody id="jobsTableBody">
-              <!-- Jobs will be inserted here by JavaScript -->
-            </tbody>
-          </table>
-        </div>
-
-        <div class="flex gap-4">
-          <button
-            id="runBtn"
-            class="px-6 py-2 bg-green-500 hover:bg-purple-600 text-white rounded-md font-medium flex items-center gap-2"
-          >
-            <svg
-              class="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-              />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Run Scheduler
-          </button>
-          <button
-            id="resetBtn"
-            class="px-6 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-md font-medium flex items-center gap-2"
-          >
-            <svg
-              class="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            Reset
-          </button>
-        </div>
-      </div>
-
-      <!-- Results Section -->
-      <div id="resultsSection" class="space-y-6 hidden">
-        <!-- Gantt Chart -->
-        <div
-          class="p-6 rounded-lg shadow-lg bg-white/80 backdrop-blur border border-gray-200"
-          id="timelineCard"
-        >
-          <h2 class="text-2xl font-semibold mb-4 text-gray-800">Timeline</h2>
-          <div id="timelineContainer" class="w-full"></div>
-        </div>
-        <!-- Gantt Chart -->
-        <div
-          class="p-6 rounded-lg shadow-lg bg-white/80 backdrop-blur border border-gray-200"
-          id="ganttCard"
-        >
-          <h2 class="text-2xl font-semibold mb-4 text-gray-800">Gantt Chart</h2>
-          <div class="overflow-x-auto pb-4">
-            <div class="min-w-max">
-              <!-- Chart bars -->
-              <div id="ganttBars" class="flex gap-0 mb-2">
-                <!-- Gantt bars will be inserted here -->
-              </div>
-
-              <!-- Timeline -->
-              <div id="ganttTimeline" class="flex w-full"></div>
-            </div>
-          </div>
-        </div>
-        <!-- Statistics -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <!-- Turnaround & Waiting Time -->
-          <div
-            class="p-6 md:col-span-2 rounded-lg shadow-lg bg-white/80 backdrop-blur border border-gray-200"
-            id="statsCard"
-          >
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800">Output</h2>
-            <table class="w-full">
-              <thead>
-                <tr class="border-b border-gray-200">
-                  <th class="py-2 px-4 text-left text-gray-700">Job ID</th>
-                  <th class="py-2 px-4 text-left text-gray-700">
-                    Turn Around Time
-                  </th>
-                  <th class="py-2 px-4 text-left text-gray-700">
-                    Waiting Time
-                  </th>
-                </tr>
-              </thead>
-              <tbody id="statsTableBody">
-                <!-- Statistics will be inserted here -->
-              </tbody>
-            </table>
-          </div>
-
-          <!-- CPU Utilization -->
-          <div
-            class="p-6 rounded-lg shadow-lg bg-white/80 backdrop-blur border border-gray-200"
-            id="cpuCard"
-          >
-            <h2 class="text-2xl font-semibold mb-4 text-gray-800">
-              CPU Utilization
-            </h2>
-            <div class="flex flex-col items-center justify-center h-40">
-              <div class="relative w-32 h-32">
-                <svg class="transform -rotate-90 w-32 h-32">
-                  <circle
-                    cx="64"
-                    cy="64"
-                    r="56"
-                    stroke="#e5e7eb"
-                    stroke-width="12"
-                    fill="none"
-                    id="cpuCircleBase"
-                  />
-                  <circle
-                    cx="64"
-                    cy="64"
-                    r="56"
-                    stroke="url(#gradient)"
-                    stroke-width="12"
-                    fill="none"
-                    stroke-dasharray="351.858"
-                    stroke-dashoffset="351.858"
-                    stroke-linecap="round"
-                    id="cpuCircleProgress"
-                  />
-                  <defs>
-                    <linearGradient
-                      id="gradient"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="100%"
-                    >
-                      <stop offset="0%" stop-color="#4ade80" />
-                      <!-- green -->
-                      <stop offset="100%" stop-color="#3b82f6" />
-                      <!-- blue -->
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div class="absolute inset-0 flex items-center justify-center">
-                  <span
-                    class="text-2xl font-bold text-gray-800"
-                    id="cpuPercentage"
-                    >0%</span
-                  >
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      style="
+        display: flex;
+        justify-content: center;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      "
+    >
+      <div id="ganttContainer">
+        <div id="ganttWrap"></div>
       </div>
     </div>
+    <div
+      style="
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.22);
+        margin-top: 8px;
+        font-style: italic;
+        text-align: center;
+      "
+    ></div>
+  </div>
 
-    <script src="scheduler.js"></script>
-  </body>
-</html>
+  <!-- Stats -->
+  <div class="results-grid">
+    <div class="glass calc-box">
+      <div class="sec-title">Turn-around Time</div>
+      <div id="tatRows"></div>
+      <div class="calc-avg" id="tatAvg"></div>
+    </div>
+    <div class="glass calc-box">
+      <div class="sec-title">Waiting Time</div>
+      <div id="wtRows"></div>
+      <div class="calc-avg" id="wtAvg"></div>
+    </div>
+    <div class="glass cpu-box">
+      <div class="sec-title">CPU Utilization</div>
+      <div class="cpu-inner">
+        <div class="donut-wrap">
+          <svg
+            width="0"
+            height="0"
+            viewBox="0 0 110 110"
+            style="transform: rotate(-90deg)"
+          >
+            <circle
+              cx="55"
+              cy="55"
+              r="44"
+              fill="none"
+              stroke="rgba(255,255,255,0.07)"
+              stroke-width="7"
+            />
+            <circle
+              id="donutArc"
+              cx="55"
+              cy="55"
+              r="44"
+              fill="none"
+              stroke="url(#dg)"
+              stroke-width="7"
+              stroke-linecap="round"
+              stroke-dasharray="276.5"
+              stroke-dashoffset="276.5"
+            />
+          </svg>
+          <div class="donut-center">
+            <div class="donut-pct" id="donutPct">0%</div>
+            <div class="donut-sub">CPU UTILIZATION</div>
+          </div>
+        </div>
+        <div class="cpu-frac" id="cpuFormula"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const COLORS = [
+    { bar: "rgba(167,139,250,0.75)", text: "#ede9fe" }, // violet
+    { bar: "rgba(129,140,248,0.75)", text: "#e0e7ff" }, // indigo
+    { bar: "rgba(96,165,250,0.75)", text: "#dbeafe" }, // blue
+    { bar: "rgba(192,132,252,0.75)", text: "#f3e8ff" }, // purple
+    { bar: "rgba(99,102,241,0.75)", text: "#e0e7ff" }, // indigo-600
+    { bar: "rgba(139,92,246,0.75)", text: "#ede9fe" }, // violet-600
+    { bar: "rgba(147,197,253,0.75)", text: "#dbeafe" }, // blue-300
+    { bar: "rgba(216,180,254,0.75)", text: "#f3e8ff" }, // purple-300
+  ];
+
+  let jobs = [
+    { id: 1, at: 0, bt: 10, pr: 3 },
+    { id: 2, at: 2, bt: 1, pr: 1 },
+    { id: 3, at: 4, bt: 2, pr: 3 },
+    { id: 4, at: 6, bt: 1, pr: 4 },
+    { id: 5, at: 8, bt: 5, pr: 2 },
+  ];
+  function scaleGantt() {
+    const container = document.getElementById("ganttContainer");
+    const content = document.getElementById("ganttWrap");
+
+    const scale = container.offsetWidth / content.scrollWidth;
+    content.style.transform = `scale(${scale})`;
+  }
+
+  window.addEventListener("resize", scaleGantt);
+  window.addEventListener("load", scaleGantt);
+  function buildTable() {
+    const n = Math.max(
+      1,
+      parseInt(document.getElementById("numJobs").value) || 1,
+    );
+    while (jobs.length < n)
+      jobs.push({ id: jobs.length + 1, at: 0, bt: 1, pr: 1 });
+    jobs = jobs.slice(0, n);
+    const tb = document.getElementById("tBody");
+    tb.innerHTML = "";
+    jobs.forEach((j, i) => {
+      tb.innerHTML += `<tr>
+      <td>P${j.id}</td>
+      <td><input type="number" min="0" value="${j.at}" onchange="jobs[${i}].at=+this.value" style="width:70px"></td>
+      <td><input type="number" min="1" value="${j.bt}" onchange="jobs[${i}].bt=+this.value" style="width:70px"></td>
+      <td><input type="number" min="1" value="${j.pr}" onchange="jobs[${i}].pr=+this.value" style="width:70px"></td>
+    </tr>`;
+    });
+  }
+  document.getElementById("numJobs").addEventListener("change", buildTable);
+  buildTable();
+
+  function avail(gantt, t) {
+    const used = gantt.map((g) => g.id);
+    return jobs
+      .filter((x) => x.at <= t && !used.includes(x.id))
+      .map((x) => x.id);
+  }
+  function merge(arr, chosen) {
+    return [...new Set([...arr, chosen])].sort((a, b) => a - b);
+  }
+
+  function fcfs() {
+    const sj = [...jobs].sort((a, b) => a.at - b.at);
+    const g = [];
+    let t = 0;
+    sj.forEach((j) => {
+      if (t < j.at) t = j.at;
+      const av = avail(g, t);
+      g.push({ id: j.id, s: t, e: t + j.bt, av: merge(av, j.id) });
+      t += j.bt;
+    });
+    return g;
+  }
+  function sjf() {
+    const rem = jobs.map((j) => ({ ...j, done: false }));
+    const g = [];
+    let t = 0,
+      done = 0;
+    while (done < jobs.length) {
+      const av = rem.filter((j) => j.at <= t && !j.done);
+      if (!av.length) {
+        t++;
+        continue;
+      }
+      const p = av.reduce((m, j) => (j.bt < m.bt ? j : m));
+      const av2 = avail(g, t);
+      g.push({ id: p.id, s: t, e: t + p.bt, av: merge(av2, p.id) });
+      t += p.bt;
+      p.done = true;
+      done++;
+    }
+    return g;
+  }
+  function npp() {
+    const rem = jobs.map((j) => ({ ...j, done: false }));
+    const g = [];
+    let t = 0,
+      done = 0;
+    while (done < jobs.length) {
+      const av = rem.filter((j) => j.at <= t && !j.done);
+      if (!av.length) {
+        t++;
+        continue;
+      }
+      const p = av.reduce((m, j) => (j.pr < m.pr ? j : m));
+      const av2 = avail(g, t);
+      g.push({ id: p.id, s: t, e: t + p.bt, av: merge(av2, p.id) });
+      t += p.bt;
+      p.done = true;
+      done++;
+    }
+    return g;
+  }
+  function srtf() {
+    const rem = jobs.map((j) => ({ ...j, left: j.bt, done: false }));
+    const g = [];
+    let t = 0,
+      done = 0,
+      lastId = -1,
+      seg = 0;
+    while (done < jobs.length) {
+      const av = rem.filter((j) => j.at <= t && !j.done);
+      if (!av.length) {
+        t++;
+        continue;
+      }
+      const p = av.reduce((m, j) => (j.left < m.left ? j : m));
+      if (p.id !== lastId) {
+        if (lastId !== -1) g.push({ id: lastId, s: seg, e: t, av: [] });
+        seg = t;
+        lastId = p.id;
+      }
+      p.left--;
+      t++;
+      if (p.left === 0) {
+        p.done = true;
+        done++;
+        g.push({ id: p.id, s: seg, e: t, av: [] });
+        lastId = -1;
+      }
+    }
+    g.forEach((seg) => {
+      const ub = g.filter((x) => x.e <= seg.s).map((x) => x.id);
+      seg.av = [
+        ...new Set([
+          ...jobs
+            .filter((j) => j.at <= seg.s && !ub.includes(j.id))
+            .map((j) => j.id),
+          seg.id,
+        ]),
+      ].sort((a, b) => a - b);
+    });
+    return g;
+  }
+
+  function renderTimeline() {
+    const sorted = [...jobs].sort((a, b) => a.at - b.at);
+    const times = [...new Set(sorted.map((j) => j.at))].sort((a, b) => a - b);
+    const max = times[times.length - 1] || 1;
+    const W = 600;
+
+    let html = `<div style="position:relative;width:${W}px;height:56px;margin:0 auto">`;
+    // horizontal line
+    html += `<div style="position:absolute;top:24px;left:0;width:${W}px;height:2px;background:rgba(255,255,255,0.25)"></div>`;
+
+    // for each job mark a tick + label
+    sorted.forEach((j) => {
+      const x = (j.at / max) * W;
+      // vertical tick
+      html += `<div style="position:absolute;left:${x}px;top:16px;width:2px;height:18px;background:rgba(255,255,255,0.4);transform:translateX(-1px)"></div>`;
+      // job label above
+      html += `<div style="position:absolute;left:${x}px;top:0;transform:translateX(-50%);font-size:12px;font-weight:700;color:#c4b5fd;font-family:'Oxanium',sans-serif">P${j.id}</div>`;
+      // time label below
+      html += `<div style="position:absolute;left:${x}px;top:38px;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,0.45);font-family:'IBM Plex Mono',monospace">${j.at}</div>`;
+    });
+    html += "</div>";
+    document.getElementById("tlContainer").innerHTML = html;
+  }
+
+  function renderGantt(gantt) {
+    const PX = 54;
+    // burst row
+    let b = '<div style="display:flex;justify-content:center">';
+    gantt.forEach((g) => {
+      const w = (g.e - g.s) * PX;
+      b += `<div style="width:${w}px;flex-shrink:0;text-align:center;font-size:11px;color:rgba(255,255,255,0.35);font-family:'IBM Plex Mono',monospace">${g.e - g.s}</div>`;
+    });
+    b += "</div>";
+    // bars
+    let bars = '<div style="display:flex;justify-content:center">';
+    gantt.forEach((g) => {
+      const c = COLORS[(g.id - 1) % COLORS.length];
+      const w = (g.e - g.s) * PX;
+      bars += `<div style="width:${w}px;flex-shrink:0;height:50px;background:${c.bar};border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:${c.text};font-family:'Oxanium',sans-serif">P${g.id}</div>`;
+    });
+    bars += "</div>";
+    // time numbers
+    let times =
+      '<div style="display:flex;justify-content:center;margin-top:2px">';
+    const seen = new Set();
+    gantt.forEach((g, i) => {
+      const w = (g.e - g.s) * PX;
+      times += `<div style="width:${w}px;flex-shrink:0;font-size:11px;font-family:'IBM Plex Mono',monospace;color:rgba(255,255,255,0.5);position:relative">`;
+      if (!seen.has(g.s)) {
+        times += `<span style="position:absolute;left:0;transform:translateX(-50%)">${g.s}</span>`;
+        seen.add(g.s);
+      }
+      if (i === gantt.length - 1) {
+        times += `<span style="position:absolute;right:0;transform:translateX(50%)">${g.e}</span>`;
+      }
+      times += "</div>";
+    });
+    times += "</div>";
+    // available jobs
+    let av =
+      '<div style="display:flex;justify-content:center;margin-top:10px">';
+    gantt.forEach((g) => {
+      const w = (g.e - g.s) * PX;
+      av += `<div style="width:${w}px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px">`;
+      (g.av || []).forEach((jid) => {
+        const sel = jid === g.id;
+        av += `<span style="font-size:10px;font-family:'IBM Plex Mono',monospace;${sel ? "text-decoration:line-through;color:rgba(255,255,255,0.22)" : "color:rgba(255,255,255,0.55)"}">P${jid}</span>`;
+      });
+      av += "</div>";
+    });
+    av += "</div>";
+    document.getElementById("ganttWrap").innerHTML = b + bars + times + av;
+  }
+
+  function renderStats(gantt) {
+    const fin = {};
+    gantt.forEach((g) => (fin[g.id] = Math.max(fin[g.id] || 0, g.e)));
+    const sorted = [...jobs].sort((a, b) => a.id - b.id);
+    const tats = [],
+      wts = [];
+    let tH = "",
+      wH = "";
+    sorted.forEach((j) => {
+      const f = fin[j.id] || 0,
+        tat = f - j.at,
+        wt = tat - j.bt;
+      tats.push(tat);
+      wts.push(wt);
+      tH += `<div class="calc-row"><span class="calc-eq">tt${j.id}: ${f} − ${j.at}</span><span class="calc-val">= ${tat}</span></div>`;
+      wH += `<div class="calc-row"><span class="calc-eq">wt${j.id}: ${tat} − ${j.bt}</span><span class="calc-val">= ${wt}</span></div>`;
+    });
+    const n = tats.length,
+      sT = tats.reduce((a, b) => a + b, 0),
+      sW = wts.reduce((a, b) => a + b, 0);
+    document.getElementById("tatRows").innerHTML = tH;
+    document.getElementById("tatAvg").innerHTML =
+      `<div class="avg-f">ttave: (${tats.join("+")})/  ${n}</div><div class="avg-f">= ${sT} / ${n}</div><div class="avg-v">= ${(sT / n).toFixed(2)} ms</div>`;
+    document.getElementById("wtRows").innerHTML = wH;
+    document.getElementById("wtAvg").innerHTML =
+      `<div class="avg-f">wtave: (${wts.join("+")})/  ${n}</div><div class="avg-f">= ${sW} / ${n}</div><div class="avg-v">= ${(sW / n).toFixed(2)} ms</div>`;
+
+    const tb = jobs.reduce((a, j) => a + j.bt, 0),
+      tt = gantt[gantt.length - 1].e,
+      pct = (tb / tt) * 100;
+    const circ = 2 * Math.PI * 44;
+    document
+      .getElementById("donutArc")
+      .setAttribute("stroke-dashoffset", (circ * (1 - pct / 100)).toFixed(2));
+    document.getElementById("donutPct").textContent = pct.toFixed(1) + "%";
+    document.getElementById("cpuFormula").innerHTML =
+      `<span class="frac-line"><span class="frac-n">${jobs.map((j) => j.bt).join("+")} = ${tb}</span><span class="frac-d">${tt}</span></span> × 100 = <span style="color:#a78bfa;font-weight:600">${pct.toFixed(1)}%</span>`;
+  }
+
+  function runScheduler() {
+    document.querySelectorAll("#tBody tr").forEach((row, i) => {
+      const inp = row.querySelectorAll("input");
+      jobs[i].at = +inp[0].value || 0;
+      jobs[i].bt = +inp[1].value || 1;
+      jobs[i].pr = +inp[2].value || 1;
+    });
+    const algo = document.getElementById("algo").value;
+    const gantt =
+      algo === "fcfs"
+        ? fcfs()
+        : algo === "sjf"
+          ? sjf()
+          : algo === "npp"
+            ? npp()
+            : srtf();
+    renderTimeline();
+    renderGantt(gantt);
+    renderStats(gantt);
+    document.getElementById("results").style.display = "flex";
+  }
+  function resetAll() {
+    document.getElementById("results").style.display = "none";
+    document
+      .getElementById("donutArc")
+      .setAttribute("stroke-dashoffset", "276.5");
+    document.getElementById("donutPct").textContent = "0%";
+    document.getElementById("cpuFormula").innerHTML = "";
+  }
+</script>
